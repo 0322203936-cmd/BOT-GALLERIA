@@ -65,16 +65,18 @@ def descargar_reporte():
         print("🔘 Paso 1: Seleccionando radio 'Todos'...")
         try:
             page.locator('label:has-text("Todos")').click(timeout=8000)
-            time.sleep(2)   # esperar que el portal habilite los campos
-            print("   ✅ Radio 'Todos' seleccionado")
+            print("   ⏳ Esperando que el servidor procese 'Todos'...")
+            page.wait_for_load_state("networkidle", timeout=30000)
+            time.sleep(4)   # Espera extra para asegurar que el Ajax terminó
+            print("   ✅ Radio 'Todos' seleccionado y procesado")
         except Exception as e:
-            print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
+            print(f"   ⚠️ Error en 'Todos': {e}")
 
-        # ── 3. Luego modificar las fechas escribiendo directamente ───────────────
+        # ── 3. Luego modificar las fechas ────────────────────────────────────────
         print(f"📅 Paso 2: Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
         set_devexpress_date("dtpFInicial", fecha_inicio)
         set_devexpress_date("dtpFFinal",   fecha_fin)
-        time.sleep(1)
+        time.sleep(2) # Dar tiempo al cliente DevExpress para actualizarse
 
         # Screenshot para ver visualmente qué quedó en los campos
         page.screenshot(path="debug_fechas.png")
