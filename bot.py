@@ -43,41 +43,30 @@ def descargar_reporte():
         print(f"   ✅ URL actual: {page.url}")
 
         def set_devexpress_date(field_id, fecha_str):
-            """Fuerza el valor en un campo DevExpress deshabilitado via JavaScript"""
-            page.evaluate(f"""
-                (function() {{
-                    var inputEl = document.getElementById('{field_id}_I');
-                    if (!inputEl) return;
-                    inputEl.removeAttribute('disabled');
-                    inputEl.removeAttribute('readonly');
-                    var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                        window.HTMLInputElement.prototype, 'value'
-                    ).set;
-                    nativeInputValueSetter.call(inputEl, '{fecha_str}');
-                    inputEl.dispatchEvent(new Event('input',  {{ bubbles: true }}));
-                    inputEl.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    inputEl.dispatchEvent(new KeyboardEvent('keyup', {{ bubbles: true }}));
-                    try {{
-                        var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
-                        if (ctrl && ctrl.SetDate) {{
-                            var parts = '{fecha_str}'.split('/');
-                            ctrl.SetDate(new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1])));
-                        }}
-                    }} catch(e) {{}}
-                }})();
-            """)
-            time.sleep(0.5)
+            """Hace clic forzado en el campo y escribe la fecha directamente"""
+            selector = f"#{field_id}_I"
+            try:
+                # force=True ignora que el campo está disabled
+                page.locator(selector).click(force=True, timeout=8000)
+                time.sleep(0.3)
+                page.keyboard.press("Control+a")
+                page.keyboard.type(fecha_str)
+                page.keyboard.press("Tab")
+                time.sleep(0.5)
+                print(f"   ✅ {field_id} llenado con: {fecha_str}")
+            except Exception as e:
+                print(f"   ⚠️ Error en {field_id}: {e}")
 
-        # ── 2. Primero seleccionar "Todos" (habilita los campos de fecha) ──────
+        # ── 2. Primero seleccionar "Todos" (activa los campos de fecha) ──────────
         print("🔘 Paso 1: Seleccionando radio 'Todos'...")
         try:
             page.locator('label:has-text("Todos")').click(timeout=8000)
-            time.sleep(1)
+            time.sleep(2)   # esperar que el portal habilite los campos
             print("   ✅ Radio 'Todos' seleccionado")
         except Exception as e:
             print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
 
-        # ── 3. Luego modificar las fechas ──────────────────────────────────────
+        # ── 3. Luego modificar las fechas escribiendo directamente ───────────────
         print(f"📅 Paso 2: Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
         set_devexpress_date("dtpFInicial", fecha_inicio)
         set_devexpress_date("dtpFFinal",   fecha_fin)
