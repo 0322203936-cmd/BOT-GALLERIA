@@ -43,19 +43,23 @@ def descargar_reporte():
         print(f"   ✅ URL actual: {page.url}")
 
         def set_devexpress_date(field_id, fecha_str):
-            """Hace clic forzado en el campo y escribe la fecha directamente"""
-            selector = f"#{field_id}_I"
+            """Usa la API nativa de DevExpress para asignar la fecha de forma segura"""
             try:
-                # force=True ignora que el campo está disabled
-                page.locator(selector).click(force=True, timeout=8000)
-                time.sleep(0.3)
-                page.keyboard.press("Control+a")
-                page.keyboard.type(fecha_str)
-                page.keyboard.press("Tab")
-                time.sleep(0.5)
-                print(f"   ✅ {field_id} llenado con: {fecha_str}")
+                page.evaluate(f"""
+                    var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
+                    if (ctrl && ctrl.SetDate) {{
+                        var parts = '{fecha_str}'.split('/');
+                        // parts[0] = mes, parts[1] = dia, parts[2] = año
+                        var dateObj = new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
+                        ctrl.SetDate(dateObj);
+                    }}
+                """)
+                print(f"   ✅ {field_id} modificado via API DevExpress a: {fecha_str}")
             except Exception as e:
-                print(f"   ⚠️ Error en {field_id}: {e}")
+                print(f"   ⚠️ Error API DevExpress en {field_id}: {e}")
+                
+            # Pequeña pausa para que la página registre el cambio
+            time.sleep(0.5)
 
         # ── 2. Primero seleccionar "Todos" (activa los campos de fecha) ──────────
         print("🔘 Paso 1: Seleccionando radio 'Todos'...")
