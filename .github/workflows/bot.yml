@@ -36,6 +36,6 @@ jobs:
         with:
           name: reporte-galleria-${{ github.run_number }}
           path: |
-            reporte_galleria.xlsx
+            reporte_galleria.*
             debug_*.png
           retention-days: 7

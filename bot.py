@@ -49,32 +49,49 @@ def descargar_reporte():
             print(f"   ⚠️ Error al cargar: {e}")
 
         # ── 4. Clic en botón Excel ─────────────────────────────────────────────
-        # El botón tiene id="btnExportarExcelImg" (imagen dentro del botón)
-        # El botón padre clickeable tiene id="btnExportarExcel" (sin "Img")
-        print("📥 Descargando XLSX...")
+        print("📥 Descargando archivo de exportación...")
         try:
             with page.expect_download(timeout=60000) as dl:
-                # Intentar clic en el botón padre del ícono Excel
                 try:
                     page.evaluate("document.getElementById('btnExportarExcel').click()")
                     print("   → Clic via JS en #btnExportarExcel")
                 except Exception:
-                    # Si no funciona JS, clic directo en la imagen
                     page.locator('#btnExportarExcelImg').click(timeout=15000)
                     print("   → Clic en #btnExportarExcelImg")
 
-            archivo = "reporte_galleria.xlsx"
-            dl.value.save_as(archivo)
-            print(f"✅ Archivo descargado: {archivo}")
+            descarga = dl.value
+
+            # Detectar el formato real del archivo descargado
+            nombre_sugerido = descarga.suggested_filename
+            print(f"   → Nombre sugerido por el servidor: {nombre_sugerido}")
+
+            # Determinar extensión real
+            if nombre_sugerido.lower().endswith(".xlsx"):
+                archivo = "reporte_galleria.xlsx"
+            elif nombre_sugerido.lower().endswith(".xls"):
+                archivo = "reporte_galleria.xls"
+            elif nombre_sugerido.lower().endswith(".csv"):
+                archivo = "reporte_galleria.csv"
+            else:
+                # Guardar con el nombre original del servidor
+                import os as _os
+                ext = _os.path.splitext(nombre_sugerido)[1] or ".download"
+                archivo = f"reporte_galleria{ext}"
+
+            descarga.save_as(archivo)
+            print(f"✅ Archivo descargado: {archivo} (formato real: {nombre_sugerido})")
 
         except Exception as e:
-            # Estrategia de respaldo: buscar por clase CSS
-            print(f"   ⚠️ Error primer intento: {e}")
+            print(f"   ⚠️ Error: {e}")
             print("   🔄 Intentando por clase CSS...")
             with page.expect_download(timeout=60000) as dl:
                 page.locator('.dxIcon_export_exporttoxlsx_16x16').click(timeout=15000)
-            archivo = "reporte_galleria.xlsx"
-            dl.value.save_as(archivo)
+            descarga = dl.value
+            nombre_sugerido = descarga.suggested_filename
+            import os as _os
+            ext = _os.path.splitext(nombre_sugerido)[1] or ".xls"
+            archivo = f"reporte_galleria{ext}"
+            descarga.save_as(archivo)
             print(f"✅ Archivo descargado (respaldo): {archivo}")
 
         browser.close()
