@@ -83,6 +83,9 @@ def descargar_reporte():
         set_devexpress_date("dtpFFinal",   fecha_fin)
         time.sleep(1)
 
+        # Screenshot para ver visualmente qué quedó en los campos
+        page.screenshot(path="debug_fechas.png")
+
         # Verificar valores en pantalla
         val_desde = page.evaluate("document.getElementById('dtpFInicial_I') ? document.getElementById('dtpFInicial_I').value : '?'")
         val_hasta  = page.evaluate("document.getElementById('dtpFFinal_I')  ? document.getElementById('dtpFFinal_I').value  : '?'")
