@@ -46,40 +46,48 @@ def descargar_reporte():
         print(f"📅 Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
 
         def set_devexpress_date(field_id, fecha_str):
-            """Intenta poner fecha en un DevExpress DatePicker por varios métodos"""
-            # Método 1: API DevExpress (SetDate)
-            try:
-                page.evaluate(f"""
-                    var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
-                    if (ctrl && ctrl.SetDate) {{
-                        var parts = '{fecha_str}'.split('/');
-                        ctrl.SetDate(new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1])));
-                    }}
-                """)
-            except Exception:
-                pass
+            """Fuerza el valor en un campo DevExpress deshabilitado via JavaScript"""
+            page.evaluate(f"""
+                (function() {{
+                    var inputEl = document.getElementById('{field_id}_I');
+                    if (!inputEl) return;
 
-            # Método 2: Playwright fill sobre el input interno (_I)
-            try:
-                selector = f"#{field_id}_I"
-                page.click(selector, timeout=5000)
-                page.keyboard.press("Control+a")
-                page.keyboard.type(fecha_str)
-                page.keyboard.press("Tab")
-                time.sleep(0.5)
-            except Exception as e2:
-                print(f"   ⚠️ No se pudo llenar {field_id}: {e2}")
+                    // 1. Quitar temporalmente el disabled
+                    inputEl.removeAttribute('disabled');
+                    inputEl.removeAttribute('readonly');
+
+                    // 2. Cambiar el valor directamente
+                    var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                        window.HTMLInputElement.prototype, 'value'
+                    ).set;
+                    nativeInputValueSetter.call(inputEl, '{fecha_str}');
+
+                    // 3. Disparar eventos para notificar a DevExpress
+                    inputEl.dispatchEvent(new Event('input',  {{ bubbles: true }}));
+                    inputEl.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    inputEl.dispatchEvent(new KeyboardEvent('keyup', {{ bubbles: true }}));
+
+                    // 4. Intentar también la API DevExpress si está disponible
+                    try {{
+                        var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
+                        if (ctrl && ctrl.SetDate) {{
+                            var parts = '{fecha_str}'.split('/');
+                            ctrl.SetDate(new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1])));
+                        }}
+                    }} catch(e) {{}}
+                }})();
+            """)
+            time.sleep(0.5)
 
         set_devexpress_date("dtpFInicial", fecha_inicio)
-        time.sleep(0.5)
-        set_devexpress_date("dtpFFinal", fecha_fin)
+        set_devexpress_date("dtpFFinal",   fecha_fin)
         time.sleep(1)
 
-        # Verificar que se llenaron
-        val_desde = page.evaluate("document.getElementById('dtpFInicial_I') ? document.getElementById('dtpFInicial_I').value : 'NO ENCONTRADO'")
-        val_hasta  = page.evaluate("document.getElementById('dtpFFinal_I')  ? document.getElementById('dtpFFinal_I').value  : 'NO ENCONTRADO'")
-        print(f"   ✅ Fecha DESDE en pantalla: {val_desde}")
-        print(f"   ✅ Fecha HASTA en pantalla: {val_hasta}")
+        # Verificar valores en pantalla
+        val_desde = page.evaluate("document.getElementById('dtpFInicial_I') ? document.getElementById('dtpFInicial_I').value : '?'")
+        val_hasta  = page.evaluate("document.getElementById('dtpFFinal_I')  ? document.getElementById('dtpFFinal_I').value  : '?'")
+        print(f"   📅 Fecha DESDE en pantalla: {val_desde}")
+        print(f"   📅 Fecha HASTA en pantalla: {val_hasta}")
 
         # ── 3. Seleccionar "Todos" ─────────────────────────────────────────────
         print("🔘 Seleccionando radio 'Todos'...")
