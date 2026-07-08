@@ -1,0 +1,43 @@
+name: "Bot Cancelaciones"
+
+on:
+  workflow_dispatch:  # Permite ejecutarlo manualmente
+  schedule:
+    # 6:00 AM, 11:00 AM, y 3:00 PM (Hora del Pacífico UTC-7)
+    # Se suman 7 horas para llegar al UTC del servidor GitHub
+    - cron: '0 13 * * 1-6'
+    - cron: '0 18 * * 1-6'
+    - cron: '0 22 * * 1-6'
+
+jobs:
+  procesar-cancelaciones:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Instalar dependencias
+      run: |
+        pip install -r requirements.txt
+        playwright install chromium
+        playwright install-deps chromium
+        
+    - name: Ejecutar script de cancelaciones
+      env:
+        GF_USER: ${{ secrets.GF_USER }}
+        GF_PASSWORD: ${{ secrets.GF_PASSWORD }}
+      run: python bot_cancelaciones.py
+      
+    - name: Guardar capturas de pantalla
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-cancelaciones
+        path: debug_cancelaciones.png
+        retention-days: 7
