@@ -42,30 +42,44 @@ def descargar_reporte():
         time.sleep(3)
         print(f"   ✅ URL actual: {page.url}")
 
-        # ── 2. Establecer fechas via JavaScript (DevExpress date pickers) ──────
+        # ── 2. Establecer fechas usando la API DevExpress + Playwright como respaldo ──
         print(f"📅 Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
-        try:
-            page.evaluate(f"""
-                // Limpiar y establecer fecha DESDE
-                var inputDesde = document.getElementById('dtpFInicial_I');
-                if (inputDesde) {{
-                    inputDesde.value = '{fecha_inicio}';
-                    inputDesde.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    inputDesde.dispatchEvent(new Event('blur',   {{ bubbles: true }}));
-                }}
 
-                // Limpiar y establecer fecha HASTA
-                var inputHasta = document.getElementById('dtpFFinal_I');
-                if (inputHasta) {{
-                    inputHasta.value = '{fecha_fin}';
-                    inputHasta.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    inputHasta.dispatchEvent(new Event('blur',   {{ bubbles: true }}));
-                }}
-            """)
-            time.sleep(1)
-            print("   ✅ Fechas establecidas")
-        except Exception as e:
-            print(f"   ⚠️ Error al establecer fechas: {e}")
+        def set_devexpress_date(field_id, fecha_str):
+            """Intenta poner fecha en un DevExpress DatePicker por varios métodos"""
+            # Método 1: API DevExpress (SetDate)
+            try:
+                page.evaluate(f"""
+                    var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
+                    if (ctrl && ctrl.SetDate) {{
+                        var parts = '{fecha_str}'.split('/');
+                        ctrl.SetDate(new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1])));
+                    }}
+                """)
+            except Exception:
+                pass
+
+            # Método 2: Playwright fill sobre el input interno (_I)
+            try:
+                selector = f"#{field_id}_I"
+                page.click(selector, timeout=5000)
+                page.keyboard.press("Control+a")
+                page.keyboard.type(fecha_str)
+                page.keyboard.press("Tab")
+                time.sleep(0.5)
+            except Exception as e2:
+                print(f"   ⚠️ No se pudo llenar {field_id}: {e2}")
+
+        set_devexpress_date("dtpFInicial", fecha_inicio)
+        time.sleep(0.5)
+        set_devexpress_date("dtpFFinal", fecha_fin)
+        time.sleep(1)
+
+        # Verificar que se llenaron
+        val_desde = page.evaluate("document.getElementById('dtpFInicial_I') ? document.getElementById('dtpFInicial_I').value : 'NO ENCONTRADO'")
+        val_hasta  = page.evaluate("document.getElementById('dtpFFinal_I')  ? document.getElementById('dtpFFinal_I').value  : 'NO ENCONTRADO'")
+        print(f"   ✅ Fecha DESDE en pantalla: {val_desde}")
+        print(f"   ✅ Fecha HASTA en pantalla: {val_hasta}")
 
         # ── 3. Seleccionar "Todos" ─────────────────────────────────────────────
         print("🔘 Seleccionando radio 'Todos'...")
