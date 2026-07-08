@@ -19,9 +19,9 @@ def run(playwright):
         return
 
     print("🔐 Haciendo login...")
-    page.fill("input[name='txtUsuario']", user)
-    page.fill("input[name='txtPassword']", password)
-    page.click("input[name='btnAceptar']")
+    page.fill('input[placeholder*="usuario" i], input[type="text"]', user)
+    page.fill('input[placeholder*="ontra" i], input[type="password"]', password)
+    page.click('button:has-text("Entrar"), input[value*="Entrar" i], input[type="submit"]')
     
     page.wait_for_load_state("networkidle", timeout=30000)
     time.sleep(2)
