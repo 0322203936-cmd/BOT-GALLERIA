@@ -17,136 +17,68 @@ def descargar_reporte():
         # ── 1. Login ──────────────────────────────────────────────────────────
         print("🌐 Abriendo página de login...")
         page.goto(URL_LOGIN, wait_until="networkidle", timeout=60000)
-        page.screenshot(path="debug_01_login.png")
 
         print("🔐 Haciendo login...")
-        # Usar placeholder para identificar los campos
-        page.fill('input[placeholder*="usuario" i], input[placeholder*="Usuario" i], input[type="text"]', USUARIO)
+        page.fill('input[placeholder*="usuario" i], input[type="text"]', USUARIO)
         page.fill('input[placeholder*="ontra" i], input[type="password"]', PASSWORD)
-        page.click('input[value*="Entrar" i], button:has-text("Entrar"), input[type="submit"]')
+        page.click('button:has-text("Entrar"), input[value*="Entrar" i], input[type="submit"]')
 
         print("⏳ Esperando que cargue el dashboard...")
         page.wait_for_load_state("networkidle", timeout=60000)
         time.sleep(3)
-        page.screenshot(path="debug_02_dashboard.png")
-        print(f"   URL actual: {page.url}")
+        print(f"   ✅ URL actual: {page.url}")
 
-        # ── 2. Seleccionar "Todos" y hacer clic en Cargar ─────────────────────
+        # ── 2. Seleccionar "Todos" ─────────────────────────────────────────────
         print("🔘 Seleccionando radio 'Todos'...")
         try:
-            # Buscar el radio button por el label "Todos"
             page.locator('label:has-text("Todos")').click(timeout=8000)
             time.sleep(1)
-        except Exception:
-            try:
-                page.locator('input[type="radio"]').last.click(timeout=5000)
-                time.sleep(1)
-            except Exception as e:
-                print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
-
-        print("▶️ Haciendo clic en 'Cargar'...")
-        try:
-            page.click('input[value="Cargar"], button:has-text("Cargar")', timeout=8000)
-            page.wait_for_load_state("networkidle", timeout=30000)
-            time.sleep(2)
+            print("   ✅ Radio 'Todos' seleccionado")
         except Exception as e:
-            print(f"   ⚠️ No se encontró botón 'Cargar': {e}")
+            print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
 
-        page.screenshot(path="debug_03_loaded.png")
+        # ── 3. Clic en "Cargar" usando JavaScript (el botón es invisible pero funciona) ──
+        print("▶️ Ejecutando 'Cargar' via JavaScript...")
+        try:
+            # El botón tiene id="btnRefresh_I" pero no es visible — lo clickeamos con JS
+            page.evaluate("document.getElementById('btnRefresh_I').click()")
+            page.wait_for_load_state("networkidle", timeout=30000)
+            time.sleep(3)
+            print("   ✅ Datos cargados")
+        except Exception as e:
+            print(f"   ⚠️ Error al cargar: {e}")
 
-        # ── 3. Inspeccionar la página para encontrar el botón Excel ───────────
-        print("🔍 Inspeccionando botones de exportación...")
-        elementos = page.evaluate("""() => {
-            const info = [];
-            // Todas las imágenes
-            document.querySelectorAll('img').forEach(el => {
-                info.push({tipo: 'img', src: el.src, alt: el.alt, title: el.title, id: el.id, clase: el.className});
-            });
-            // Todos los links
-            document.querySelectorAll('a').forEach(el => {
-                if (el.href && (el.href.includes('xls') || el.href.includes('Export') || el.href.includes('export') || el.href.includes('Excel'))) {
-                    info.push({tipo: 'link', href: el.href, text: el.textContent, id: el.id});
-                }
-            });
-            // Inputs tipo image
-            document.querySelectorAll('input[type="image"]').forEach(el => {
-                info.push({tipo: 'input-img', src: el.src, id: el.id, clase: el.className});
-            });
-            // Botones con texto relacionado
-            document.querySelectorAll('button, input[type="button"]').forEach(el => {
-                const t = (el.textContent || el.value || '').toLowerCase();
-                if (t.includes('excel') || t.includes('xls') || t.includes('export')) {
-                    info.push({tipo: 'boton', text: el.textContent, value: el.value, id: el.id});
-                }
-            });
-            // Spans y divs con onclick que mencionen export/excel
-            document.querySelectorAll('[onclick]').forEach(el => {
-                const oc = el.getAttribute('onclick') || '';
-                if (oc.toLowerCase().includes('excel') || oc.toLowerCase().includes('export') || oc.toLowerCase().includes('xls')) {
-                    info.push({tipo: 'onclick', tag: el.tagName, onclick: oc, id: el.id, clase: el.className});
-                }
-            });
-            return info;
-        }""")
+        # ── 4. Clic en botón Excel ─────────────────────────────────────────────
+        # El botón tiene id="btnExportarExcelImg" (imagen dentro del botón)
+        # El botón padre clickeable tiene id="btnExportarExcel" (sin "Img")
+        print("📥 Descargando XLSX...")
+        try:
+            with page.expect_download(timeout=60000) as dl:
+                # Intentar clic en el botón padre del ícono Excel
+                try:
+                    page.evaluate("document.getElementById('btnExportarExcel').click()")
+                    print("   → Clic via JS en #btnExportarExcel")
+                except Exception:
+                    # Si no funciona JS, clic directo en la imagen
+                    page.locator('#btnExportarExcelImg').click(timeout=15000)
+                    print("   → Clic en #btnExportarExcelImg")
 
-        print(f"   Elementos encontrados: {len(elementos)}")
-        for el in elementos:
-            print(f"   → {el}")
+            archivo = "reporte_galleria.xlsx"
+            dl.value.save_as(archivo)
+            print(f"✅ Archivo descargado: {archivo}")
 
-        # ── 4. Intentar descargar ─────────────────────────────────────────────
-        print("📥 Intentando descargar XLSX...")
-
-        # Estrategia 1: Buscar img con src relacionado a excel/xls
-        selectores_excel = [
-            'img[src*="xls"]',
-            'img[src*="Excel"]',
-            'img[src*="excel"]',
-            'img[alt*="Excel" i]',
-            'img[title*="Excel" i]',
-            'a[href*="xls"]',
-            'a[href*="Excel" i]',
-            'a[href*="export" i]',
-            'input[src*="xls"]',
-            'input[src*="excel" i]',
-            '[onclick*="xls" i]',
-            '[onclick*="Excel" i]',
-            '[onclick*="Export" i]',
-        ]
-
-        descargado = False
-        for selector in selectores_excel:
-            try:
-                count = page.locator(selector).count()
-                if count > 0:
-                    print(f"   ✅ Encontrado con selector: {selector} ({count} elemento/s)")
-                    with page.expect_download(timeout=30000) as dl:
-                        page.locator(selector).first.click()
-                    archivo = "reporte_galleria.xlsx"
-                    dl.value.save_as(archivo)
-                    print(f"✅ Descargado: {archivo}")
-                    descargado = True
-                    break
-            except Exception as e:
-                print(f"   ✗ {selector}: {e}")
-
-        if not descargado:
-            # Estrategia 2: Clic en el ícono verde (segundo ícono arriba a la derecha del visor)
-            print("   🔄 Intentando por posición del ícono verde (Excel)...")
-            page.screenshot(path="debug_04_before_excel_click.png")
-            try:
-                # El ícono Excel suele ser el segundo ícono de exportación
-                iconos = page.locator('img').all()
-                print(f"   Total imágenes en página: {len(iconos)}")
-                for i, icono in enumerate(iconos):
-                    src = icono.get_attribute("src") or ""
-                    print(f"   img[{i}] src={src}")
-            except Exception as e:
-                print(f"   Error listando imgs: {e}")
-
-            raise Exception("❌ No se encontró el botón Excel. Revisa los logs y debug_*.png para inspeccionar la página.")
+        except Exception as e:
+            # Estrategia de respaldo: buscar por clase CSS
+            print(f"   ⚠️ Error primer intento: {e}")
+            print("   🔄 Intentando por clase CSS...")
+            with page.expect_download(timeout=60000) as dl:
+                page.locator('.dxIcon_export_exporttoxlsx_16x16').click(timeout=15000)
+            archivo = "reporte_galleria.xlsx"
+            dl.value.save_as(archivo)
+            print(f"✅ Archivo descargado (respaldo): {archivo}")
 
         browser.close()
-        return "reporte_galleria.xlsx"
+        return archivo
 
 if __name__ == "__main__":
     archivo = descargar_reporte()
