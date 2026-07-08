@@ -1,5 +1,7 @@
 import os
 import time
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from playwright.sync_api import sync_playwright
 
 # Credenciales desde variables de entorno (GitHub Secrets)
@@ -8,7 +10,19 @@ PASSWORD = os.environ.get("GF_PASSWORD", "1234")
 
 URL_LOGIN = "https://farms.galleriafarms.com/SplashWFrm.aspx?ReturnUrl=%2fDefault.aspx"
 
+def calcular_fechas():
+    """Calcula el rango: hoy → hoy + 6 meses"""
+    hoy = date.today()
+    fin  = hoy + relativedelta(months=6)
+    # Formato requerido por el portal: M/D/YYYY
+    fecha_inicio = hoy.strftime("%-m/%-d/%Y")   # ej: 7/8/2026
+    fecha_fin    = fin.strftime("%-m/%-d/%Y")    # ej: 1/8/2027
+    return fecha_inicio, fecha_fin
+
 def descargar_reporte():
+    fecha_inicio, fecha_fin = calcular_fechas()
+    print(f"📅 Rango de fechas: {fecha_inicio} → {fecha_fin}")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(accept_downloads=True)
@@ -28,7 +42,32 @@ def descargar_reporte():
         time.sleep(3)
         print(f"   ✅ URL actual: {page.url}")
 
-        # ── 2. Seleccionar "Todos" ─────────────────────────────────────────────
+        # ── 2. Establecer fechas via JavaScript (DevExpress date pickers) ──────
+        print(f"📅 Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
+        try:
+            page.evaluate(f"""
+                // Limpiar y establecer fecha DESDE
+                var inputDesde = document.getElementById('dtpFInicial_I');
+                if (inputDesde) {{
+                    inputDesde.value = '{fecha_inicio}';
+                    inputDesde.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    inputDesde.dispatchEvent(new Event('blur',   {{ bubbles: true }}));
+                }}
+
+                // Limpiar y establecer fecha HASTA
+                var inputHasta = document.getElementById('dtpFFinal_I');
+                if (inputHasta) {{
+                    inputHasta.value = '{fecha_fin}';
+                    inputHasta.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    inputHasta.dispatchEvent(new Event('blur',   {{ bubbles: true }}));
+                }}
+            """)
+            time.sleep(1)
+            print("   ✅ Fechas establecidas")
+        except Exception as e:
+            print(f"   ⚠️ Error al establecer fechas: {e}")
+
+        # ── 3. Seleccionar "Todos" ─────────────────────────────────────────────
         print("🔘 Seleccionando radio 'Todos'...")
         try:
             page.locator('label:has-text("Todos")').click(timeout=8000)
@@ -37,10 +76,9 @@ def descargar_reporte():
         except Exception as e:
             print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
 
-        # ── 3. Clic en "Cargar" usando JavaScript (el botón es invisible pero funciona) ──
+        # ── 4. Hacer clic en "Cargar" via JavaScript ───────────────────────────
         print("▶️ Ejecutando 'Cargar' via JavaScript...")
         try:
-            # El botón tiene id="btnRefresh_I" pero no es visible — lo clickeamos con JS
             page.evaluate("document.getElementById('btnRefresh_I').click()")
             page.wait_for_load_state("networkidle", timeout=30000)
             time.sleep(3)
@@ -48,7 +86,7 @@ def descargar_reporte():
         except Exception as e:
             print(f"   ⚠️ Error al cargar: {e}")
 
-        # ── 4. Clic en botón Excel ─────────────────────────────────────────────
+        # ── 5. Descargar el archivo Excel ──────────────────────────────────────
         print("📥 Descargando archivo de exportación...")
         try:
             with page.expect_download(timeout=60000) as dl:
@@ -60,37 +98,26 @@ def descargar_reporte():
                     print("   → Clic en #btnExportarExcelImg")
 
             descarga = dl.value
-
-            # Detectar el formato real del archivo descargado
             nombre_sugerido = descarga.suggested_filename
             print(f"   → Nombre sugerido por el servidor: {nombre_sugerido}")
 
-            # Determinar extensión real
-            if nombre_sugerido.lower().endswith(".xlsx"):
-                archivo = "reporte_galleria.xlsx"
-            elif nombre_sugerido.lower().endswith(".xls"):
-                archivo = "reporte_galleria.xls"
-            elif nombre_sugerido.lower().endswith(".csv"):
-                archivo = "reporte_galleria.csv"
-            else:
-                # Guardar con el nombre original del servidor
-                import os as _os
-                ext = _os.path.splitext(nombre_sugerido)[1] or ".download"
-                archivo = f"reporte_galleria{ext}"
-
+            # Guardar con nombre que incluye la fecha de hoy y la extensión real
+            ext = os.path.splitext(nombre_sugerido)[1] or ".xls"
+            hoy_str = date.today().strftime("%Y-%m-%d")
+            archivo = f"reporte_galleria_{hoy_str}{ext}"
             descarga.save_as(archivo)
-            print(f"✅ Archivo descargado: {archivo} (formato real: {nombre_sugerido})")
+            print(f"✅ Archivo descargado: {archivo}")
 
         except Exception as e:
-            print(f"   ⚠️ Error: {e}")
+            print(f"   ⚠️ Error primer intento: {e}")
             print("   🔄 Intentando por clase CSS...")
             with page.expect_download(timeout=60000) as dl:
                 page.locator('.dxIcon_export_exporttoxlsx_16x16').click(timeout=15000)
             descarga = dl.value
             nombre_sugerido = descarga.suggested_filename
-            import os as _os
-            ext = _os.path.splitext(nombre_sugerido)[1] or ".xls"
-            archivo = f"reporte_galleria{ext}"
+            ext = os.path.splitext(nombre_sugerido)[1] or ".xls"
+            hoy_str = date.today().strftime("%Y-%m-%d")
+            archivo = f"reporte_galleria_{hoy_str}{ext}"
             descarga.save_as(archivo)
             print(f"✅ Archivo descargado (respaldo): {archivo}")
 

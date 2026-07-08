@@ -2,8 +2,10 @@ name: Bot Galleria Farms - Descarga Reporte
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # Cada 6 horas
-  workflow_dispatch:          # Permite ejecutarlo manualmente desde GitHub
+    - cron: '0 14 * * *'   # 7:00 AM hora Mexico/PDT (UTC-7)
+    - cron: '0 19 * * *'   # 12:00 PM hora Mexico/PDT (UTC-7)
+    - cron: '0 23 * * *'   # 4:00 PM hora Mexico/PDT (UTC-7)
+  workflow_dispatch:         # Permite ejecutarlo manualmente desde GitHub
 
 jobs:
   descargar-reporte:
@@ -21,6 +23,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           pip install -r requirements.txt
+          pip install python-dateutil
           playwright install chromium
           playwright install-deps chromium
 
@@ -36,6 +39,6 @@ jobs:
         with:
           name: reporte-galleria-${{ github.run_number }}
           path: |
-            reporte_galleria.*
+            reporte_galleria_*.*
             debug_*.png
-          retention-days: 7
+          retention-days: 30
