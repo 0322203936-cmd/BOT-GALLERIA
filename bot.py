@@ -15,30 +15,64 @@ def descargar_reporte():
         page = context.new_page()
 
         print("🌐 Abriendo página de login...")
-        page.goto(URL_LOGIN, wait_until="networkidle")
+        page.goto(URL_LOGIN, wait_until="networkidle", timeout=60000)
+
+        # Screenshot para debug del login
+        page.screenshot(path="debug_01_login_page.png")
+        print("📸 Screenshot: debug_01_login_page.png")
 
         # Login
         print("🔐 Haciendo login...")
         page.fill('input[name*="Usuario"], input[id*="Usuario"], input[type="text"]', USUARIO)
         page.fill('input[name*="Password"], input[id*="Password"], input[type="password"]', PASSWORD)
         page.click('input[type="submit"], button[type="submit"]')
-        page.wait_for_load_state("networkidle")
-        print("✅ Login exitoso")
 
-        # Esperar a que cargue la tabla principal
-        print("⏳ Esperando tabla de órdenes...")
-        page.wait_for_selector("table", timeout=15000)
+        # Esperar que la página cargue completamente después del login
+        print("⏳ Esperando que cargue el dashboard...")
+        page.wait_for_load_state("networkidle", timeout=60000)
+        time.sleep(3)
+
+        # Screenshot después del login
+        page.screenshot(path="debug_02_after_login.png")
+        print("📸 Screenshot: debug_02_after_login.png")
+
+        # Esperar que desaparezca el panel de carga (LoadingPanel)
+        print("⏳ Esperando que desaparezca el loading panel...")
+        try:
+            page.wait_for_selector(
+                '#LoadingPanel[style*="display: none"], #LoadingPanel[style*="display:none"]',
+                timeout=30000
+            )
+        except Exception:
+            print("⚠️ LoadingPanel no desapareció, continuando de todas formas...")
+
+        time.sleep(2)
+
+        # Screenshot del estado actual
+        page.screenshot(path="debug_03_dashboard.png")
+        print("📸 Screenshot: debug_03_dashboard.png")
 
         # Hacer clic en "Todos" (radio button)
         print("🔘 Seleccionando 'Todos'...")
-        page.click('input[type="radio"][value="Todos"], label:has-text("Todos")')
-        time.sleep(1)
+        try:
+            page.click('input[type="radio"][value="Todos"], label:has-text("Todos")', timeout=10000)
+            time.sleep(1)
+        except Exception as e:
+            print(f"⚠️ No se encontró radio 'Todos': {e}")
 
-        # Hacer clic en el botón XLSX (ícono verde de Excel)
+        # Screenshot antes de descargar
+        page.screenshot(path="debug_04_before_download.png")
+        print("📸 Screenshot: debug_04_before_download.png")
+
+        # Hacer clic en el botón XLSX
         print("📥 Descargando XLSX...")
-        with page.expect_download(timeout=30000) as download_info:
-            # El botón XLSX suele ser una imagen o ícono con extensión xls/xlsx
-            page.click('img[src*="xls"], a[href*="xls"], input[src*="xls"], img[title*="Excel"], img[alt*="Excel"]')
+        with page.expect_download(timeout=60000) as download_info:
+            page.click(
+                'img[src*="xls"], a[href*="xls"], input[src*="xls"], '
+                'img[title*="Excel"], img[alt*="Excel"], '
+                'a[title*="Excel"], span[title*="Excel"]',
+                timeout=15000
+            )
 
         download = download_info.value
         archivo = "reporte_galleria.xlsx"
