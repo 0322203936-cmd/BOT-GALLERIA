@@ -42,32 +42,21 @@ def descargar_reporte():
         time.sleep(3)
         print(f"   ✅ URL actual: {page.url}")
 
-        # ── 2. Establecer fechas usando la API DevExpress + Playwright como respaldo ──
-        print(f"📅 Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
-
         def set_devexpress_date(field_id, fecha_str):
             """Fuerza el valor en un campo DevExpress deshabilitado via JavaScript"""
             page.evaluate(f"""
                 (function() {{
                     var inputEl = document.getElementById('{field_id}_I');
                     if (!inputEl) return;
-
-                    // 1. Quitar temporalmente el disabled
                     inputEl.removeAttribute('disabled');
                     inputEl.removeAttribute('readonly');
-
-                    // 2. Cambiar el valor directamente
                     var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
                         window.HTMLInputElement.prototype, 'value'
                     ).set;
                     nativeInputValueSetter.call(inputEl, '{fecha_str}');
-
-                    // 3. Disparar eventos para notificar a DevExpress
                     inputEl.dispatchEvent(new Event('input',  {{ bubbles: true }}));
                     inputEl.dispatchEvent(new Event('change', {{ bubbles: true }}));
                     inputEl.dispatchEvent(new KeyboardEvent('keyup', {{ bubbles: true }}));
-
-                    // 4. Intentar también la API DevExpress si está disponible
                     try {{
                         var ctrl = ASPxClientControl.GetControlCollection().GetByName('{field_id}');
                         if (ctrl && ctrl.SetDate) {{
@@ -79,6 +68,17 @@ def descargar_reporte():
             """)
             time.sleep(0.5)
 
+        # ── 2. Primero seleccionar "Todos" (habilita los campos de fecha) ──────
+        print("🔘 Paso 1: Seleccionando radio 'Todos'...")
+        try:
+            page.locator('label:has-text("Todos")').click(timeout=8000)
+            time.sleep(1)
+            print("   ✅ Radio 'Todos' seleccionado")
+        except Exception as e:
+            print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
+
+        # ── 3. Luego modificar las fechas ──────────────────────────────────────
+        print(f"📅 Paso 2: Configurando fechas: Desde={fecha_inicio} | Hasta={fecha_fin}")
         set_devexpress_date("dtpFInicial", fecha_inicio)
         set_devexpress_date("dtpFFinal",   fecha_fin)
         time.sleep(1)
@@ -89,16 +89,7 @@ def descargar_reporte():
         print(f"   📅 Fecha DESDE en pantalla: {val_desde}")
         print(f"   📅 Fecha HASTA en pantalla: {val_hasta}")
 
-        # ── 3. Seleccionar "Todos" ─────────────────────────────────────────────
-        print("🔘 Seleccionando radio 'Todos'...")
-        try:
-            page.locator('label:has-text("Todos")').click(timeout=8000)
-            time.sleep(1)
-            print("   ✅ Radio 'Todos' seleccionado")
-        except Exception as e:
-            print(f"   ⚠️ No se pudo clic en 'Todos': {e}")
-
-        # ── 4. Hacer clic en "Cargar" via JavaScript ───────────────────────────
+        # ── 4. Luego clic en "Cargar" ───────────────────────────────────────────
         print("▶️ Ejecutando 'Cargar' via JavaScript...")
         try:
             page.evaluate("document.getElementById('btnRefresh_I').click()")
