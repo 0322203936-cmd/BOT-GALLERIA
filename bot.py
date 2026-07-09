@@ -130,7 +130,41 @@ def descargar_reporte():
             hoy_str = date.today().strftime("%Y-%m-%d")
             archivo = f"reporte_galleria_{hoy_str}{ext}"
             descarga.save_as(archivo)
+            descarga.save_as(archivo)
             print(f"✅ Archivo descargado (respaldo): {archivo}")
+
+        # ── 6. Fase 2: Subir reporte a PoscoClient ─────────────────────────────
+        print("\n🚀 Iniciando Fase 2: Subida a PoscoClient...")
+        try:
+            print("🌐 Navegando a PoscoClient...")
+            page.goto("http://3.132.9.174/Posco/#/revisar-ordenes", wait_until="networkidle", timeout=60000)
+            time.sleep(5)
+            
+            # Verificamos si hay que hacer click en Revisar Archivo para abrir el modal
+            print("🔎 Abriendo modal de 'Import excel'...")
+            try:
+                page.click('button:has-text("Revisar Archivo")', timeout=10000)
+                time.sleep(2)
+            except Exception as e:
+                print("   ⚠️ No se encontró el botón 'Revisar Archivo', intentando buscar el input file directo.")
+
+            print("📁 Inyectando archivo descargado...")
+            page.set_input_files('input[type="file"]', archivo)
+            time.sleep(2)
+            
+            print("⬆️ Haciendo clic en 'Upload'...")
+            page.click('button:has-text("Upload")', timeout=10000)
+            
+            print("⏳ Esperando que el servidor procese el archivo...")
+            time.sleep(5)
+            
+            print("📸 Tomando captura final de PoscoClient (debug_posco.png)...")
+            page.screenshot(path="debug_posco.png", full_page=True)
+            print("✅ Fase 2 completada exitosamente.")
+            
+        except Exception as e:
+            print(f"   ❌ Error en la fase de subida a PoscoClient: {e}")
+            page.screenshot(path="debug_posco_error.png", full_page=True)
 
         browser.close()
         return archivo
