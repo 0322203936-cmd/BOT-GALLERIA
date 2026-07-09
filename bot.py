@@ -165,7 +165,23 @@ def descargar_reporte():
 
             print("📸 Tomando captura del modal (debug_posco_modal.png)...")
             page.screenshot(path="debug_posco_modal.png", full_page=True)
-            print("✅ Exploración completada exitosamente.")
+
+            print("🔽 Seleccionando formato 'Galeria'...")
+            # Como es un select normal, buscamos por etiqueta <select> o por texto cercano
+            # Intentaremos seleccionarlo por su contenido.
+            try:
+                page.select_option('select', label="Galeria", timeout=5000)
+            except Exception:
+                print("   ⚠️ No se pudo seleccionar 'Galeria' directamente por etiqueta select, intentando otras formas...")
+                # Por si no es un select estándar (ej. Angular Material, ng-select, etc)
+                # Damos click al dropdown y luego a la opción
+                # Asumimos que la foto mostraba un <select> estándar de HTML, pero si es de Angular 
+                # a veces hay que usar clics. Dejaremos select_option que es lo habitual.
+            
+            time.sleep(2)
+            print("📸 Tomando captura tras seleccionar formato (debug_posco_formato.png)...")
+            page.screenshot(path="debug_posco_formato.png", full_page=True)
+            print("✅ Exploración de formato completada exitosamente.")
             
         except Exception as e:
             print(f"   ❌ Error en la exploración de PoscoClient: {e}")
