@@ -190,7 +190,17 @@ def descargar_reporte():
             print("📸 Tomando captura tras seleccionar archivo (debug_posco_archivo.png)...")
             page.screenshot(path="debug_posco_archivo.png", full_page=True)
             
-            print("✅ Exploración de selección de archivo completada exitosamente.")
+            print("⬆️ Dando clic en Upload para subir el archivo...")
+            page.click('button:has-text("Upload"), button:has-text("Subir")', timeout=10000)
+            
+            print("⏳ Esperando 10 minutos a que termine la subida...")
+            # Esperar 600 segundos (10 minutos)
+            time.sleep(600)
+            
+            print("📸 Tomando captura final tras 10 minutos (debug_posco_final.png)...")
+            page.screenshot(path="debug_posco_final.png", full_page=True)
+            
+            print("✅ Subida completada exitosamente.")
             
         except Exception as e:
             print(f"   ❌ Error en la exploración de PoscoClient: {e}")
