@@ -181,7 +181,16 @@ def descargar_reporte():
             time.sleep(2)
             print("📸 Tomando captura tras seleccionar formato (debug_posco_formato.png)...")
             page.screenshot(path="debug_posco_formato.png", full_page=True)
-            print("✅ Exploración de formato completada exitosamente.")
+            
+            print("📁 Seleccionando archivo Excel en el input...")
+            # Inyectar el archivo en el input tipo file (esto es equivalente a darle click a Elegir Archivo y buscarlo)
+            page.set_input_files('input[type="file"]', archivo)
+            
+            time.sleep(2)
+            print("📸 Tomando captura tras seleccionar archivo (debug_posco_archivo.png)...")
+            page.screenshot(path="debug_posco_archivo.png", full_page=True)
+            
+            print("✅ Exploración de selección de archivo completada exitosamente.")
             
         except Exception as e:
             print(f"   ❌ Error en la exploración de PoscoClient: {e}")
