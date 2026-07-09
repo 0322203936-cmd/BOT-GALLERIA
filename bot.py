@@ -132,6 +132,28 @@ def descargar_reporte():
             descarga.save_as(archivo)
             print(f"✅ Archivo descargado (respaldo): {archivo}")
 
+        # ── 6. Fase 2: Exploración de PoscoClient (Paso 1) ──────────────────────
+        print("\n🚀 Iniciando Fase 2 (Paso 1): Exploración de PoscoClient...")
+        try:
+            print("🌐 Navegando a PoscoClient...")
+            page.goto("http://3.132.9.174/Posco/#/revisar-ordenes", wait_until="networkidle", timeout=60000)
+            time.sleep(5)
+            
+            print("📸 Tomando captura inicial (debug_posco_inicio.png)...")
+            page.screenshot(path="debug_posco_inicio.png", full_page=True)
+            
+            print("🔎 Abriendo modal de 'Import excel'...")
+            page.click('button:has-text("Revisar Archivo")', timeout=10000)
+            time.sleep(2)
+
+            print("📸 Tomando captura del modal (debug_posco_modal.png)...")
+            page.screenshot(path="debug_posco_modal.png", full_page=True)
+            print("✅ Exploración completada exitosamente.")
+            
+        except Exception as e:
+            print(f"   ❌ Error en la exploración de PoscoClient: {e}")
+            page.screenshot(path="debug_posco_error.png", full_page=True)
+
         browser.close()
         return archivo
 
