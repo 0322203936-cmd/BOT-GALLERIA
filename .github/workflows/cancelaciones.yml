@@ -34,6 +34,14 @@ jobs:
         GF_PASSWORD: ${{ secrets.GF_PASSWORD }}
       run: python bot_cancelaciones.py
       
+    - name: Guardar CSV en el repositorio
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add reporte_cancelaciones_pendientes.csv
+        # Verifica si hay cambios para evitar error en el commit
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Actualizar reporte de cancelaciones acumulado" && git push)
+      
     - name: Guardar capturas de pantalla y reporte
       if: always()
       uses: actions/upload-artifact@v4

@@ -68,13 +68,37 @@ def run(playwright):
     print(f"Encontradas {len(data_rows)} solicitudes de cancelación.")
     
     csv_file = "reporte_cancelaciones_pendientes.csv"
-    with open(csv_file, mode="w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.writer(f)
-        writer.writerow(headers)
-        for row in data_rows:
-            writer.writerow(row)
+    
+    # Leer filas existentes para evitar duplicados
+    existing_rows = set()
+    if os.path.exists(csv_file):
+        with open(csv_file, mode="r", newline="", encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            try:
+                next(reader)  # Saltar encabezados
+            except StopIteration:
+                pass
+            for r in reader:
+                # Usar la fila completa como identificador para evitar duplicados exactos
+                existing_rows.add(tuple(r))
 
-    print(f"✅ Reporte guardado exitosamente como {csv_file}")
+    new_rows_count = 0
+    file_exists = os.path.exists(csv_file)
+    
+    with open(csv_file, mode="a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(headers)
+            
+        for row in data_rows:
+            row_tuple = tuple(row)
+            if row_tuple not in existing_rows:
+                writer.writerow(row)
+                existing_rows.add(row_tuple)
+                new_rows_count += 1
+
+    print(f"✅ Reporte actualizado exitosamente en {csv_file}")
+    print(f"Se agregaron {new_rows_count} nuevas cancelaciones al acumulado.")
     
     browser.close()
 
