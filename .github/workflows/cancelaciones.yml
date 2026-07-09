@@ -34,10 +34,12 @@ jobs:
         GF_PASSWORD: ${{ secrets.GF_PASSWORD }}
       run: python bot_cancelaciones.py
       
-    - name: Guardar capturas de pantalla
+    - name: Guardar capturas de pantalla y reporte
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: debug-cancelaciones
-        path: debug_cancelaciones.png
+        name: reporte-cancelaciones-${{ github.run_number }}
+        path: |
+          debug_cancelaciones.png
+          reporte_cancelaciones_pendientes.csv
         retention-days: 7

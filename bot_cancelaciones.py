@@ -1,5 +1,6 @@
 import os
 import time
+import csv
 from playwright.sync_api import sync_playwright
 
 def run(playwright):
@@ -32,10 +33,48 @@ def run(playwright):
     page.wait_for_load_state("networkidle", timeout=30000)
     time.sleep(3)
 
-    print("📸 Tomando captura de pantalla...")
+    print("⏳ Haciendo clic en 'Cargar Solicitudes De Cancelación'...")
+    try:
+        page.click('text="Cargar Solicitudes De Cancelación"', timeout=10000)
+        time.sleep(8) # Esperar a que cargue la tabla
+    except Exception as e:
+        print(f"⚠️ No se pudo hacer clic en el botón cargar: {e}")
+
+    print("📸 Tomando captura de pantalla antes de extraer (debug)...")
     page.screenshot(path="debug_cancelaciones.png", full_page=True)
 
-    print("✅ Listo, captura guardada como debug_cancelaciones.png")
+    print("📊 Extrayendo datos de la tabla...")
+    
+    # Extraer encabezados de la tabla
+    headers = page.evaluate('''() => {
+        const headerNodes = Array.from(document.querySelectorAll('td[class*="dxgvHeader"], th[class*="dxgvHeader"]'));
+        return headerNodes.map(h => h.innerText.trim()).filter(t => t.length > 0);
+    }''')
+
+    # Extraer filas de datos
+    data_rows = page.evaluate('''() => {
+        // En DevExpress, las filas de datos suelen tener la clase 'dxgvDataRow'
+        const rows = Array.from(document.querySelectorAll('tr[class*="dxgvDataRow"]'));
+        return rows.map(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            return cells.map(cell => cell.innerText.trim());
+        });
+    }''')
+    
+    # Si no hay encabezados, usamos unos por defecto según lo que vimos en la imagen
+    if not headers:
+        headers = ['Aprobar', 'Negar', 'Receta', 'Cliente #', 'Orden ID #', 'Finca', 'Fecha Envio Finca', 'Producto', 'Caja', 'Pack', 'Cantidad Confirmada', 'Solicitud Cancelación', 'Respuesta Cancelación', 'Aceptación Cancelación']
+
+    print(f"Encontradas {len(data_rows)} solicitudes de cancelación.")
+    
+    csv_file = "reporte_cancelaciones_pendientes.csv"
+    with open(csv_file, mode="w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        for row in data_rows:
+            writer.writerow(row)
+
+    print(f"✅ Reporte guardado exitosamente como {csv_file}")
     
     browser.close()
 
