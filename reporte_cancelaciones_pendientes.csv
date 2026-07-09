@@ -1,0 +1,19 @@
+﻿Aprobar,Negar,Receta,Cliente #,Orden ID #,Finca,Fecha Envio Finca,Producto,Caja,Pack,Cantidad Confirmada,Solicitud Cancelación,Respuesta Cancelación,Aceptación Cancelación
+,,,1081,1657292,Centro Floricultor Baja California,7/17/2026,OTH G60 SUNFLOWER B PK 80 SC,D,16,20,,,,"<!--
+ASPx.AddDisabledItems('dGridCancelaciones_DXCBtn3',[[['dxbDisabled_Office2010Blue'],[''],[''],['','TC']]]);
+
+//-->
+
+<!--
+ASPx.AddDisabledItems('dGridCancelaciones_DXCBtn4',[[['dxbDisabled_Office2010Blue'],[''],[''],['','TC']]]);
+
+//-->"
+,,,1081,1657292,Centro Floricultor Baja California,7/17/2026,OTH G60 SUNFLOWER B PK 40 SC,L,8,25,,,,"<!--
+ASPx.AddDisabledItems('dGridCancelaciones_DXCBtn8',[[['dxbDisabled_Office2010Blue'],[''],[''],['','TC']]]);
+
+//-->
+
+<!--
+ASPx.AddDisabledItems('dGridCancelaciones_DXCBtn9',[[['dxbDisabled_Office2010Blue'],[''],[''],['','TC']]]);
+
+//-->"
