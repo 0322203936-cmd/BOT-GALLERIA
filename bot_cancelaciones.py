@@ -52,7 +52,8 @@ def run(playwright):
     }''')
 
     # Extraer filas de datos
-    data_rows = page.evaluate('''() => {
+    import re
+    data_rows_raw = page.evaluate('''() => {
         // En DevExpress, las filas de datos suelen tener la clase 'dxgvDataRow'
         const rows = Array.from(document.querySelectorAll('tr[class*="dxgvDataRow"]'));
         return rows.map(row => {
@@ -60,6 +61,12 @@ def run(playwright):
             return cells.map(cell => cell.innerText.trim());
         });
     }''')
+    
+    # Limpiar comentarios HTML (ej. ASPx.AddDisabledItems) que se cuelan en el innerText
+    data_rows = []
+    for row in data_rows_raw:
+        cleaned_row = [re.sub(r'<!--.*?-->', '', cell, flags=re.DOTALL).strip() for cell in row]
+        data_rows.append(cleaned_row)
     
     # Si no hay encabezados, usamos unos por defecto según lo que vimos en la imagen
     if not headers:
@@ -69,8 +76,14 @@ def run(playwright):
     
     csv_file = "reporte_cancelaciones_pendientes.csv"
     
+    def get_row_key(r):
+        # Clave única para evitar duplicados: Cliente (3), Orden ID (4), Producto (7), Caja (8), Pack (9)
+        if len(r) >= 10:
+            return (r[3].strip(), r[4].strip(), r[7].strip(), r[8].strip(), r[9].strip())
+        return tuple(r)
+    
     # Leer filas existentes para evitar duplicados
-    existing_rows = set()
+    existing_keys = set()
     if os.path.exists(csv_file):
         with open(csv_file, mode="r", newline="", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
@@ -79,8 +92,7 @@ def run(playwright):
             except StopIteration:
                 pass
             for r in reader:
-                # Usar la fila completa como identificador para evitar duplicados exactos
-                existing_rows.add(tuple(r))
+                existing_keys.add(get_row_key(r))
 
     new_rows_count = 0
     file_exists = os.path.exists(csv_file)
@@ -91,10 +103,10 @@ def run(playwright):
             writer.writerow(headers)
             
         for row in data_rows:
-            row_tuple = tuple(row)
-            if row_tuple not in existing_rows:
+            key = get_row_key(row)
+            if key not in existing_keys:
                 writer.writerow(row)
-                existing_rows.add(row_tuple)
+                existing_keys.add(key)
                 new_rows_count += 1
 
     print(f"✅ Reporte actualizado exitosamente en {csv_file}")
