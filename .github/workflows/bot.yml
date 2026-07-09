@@ -31,6 +31,8 @@ jobs:
         env:
           GF_USER: ${{ secrets.GF_USER }}
           GF_PASSWORD: ${{ secrets.GF_PASSWORD }}
+          POSCO_USER: ${{ secrets.POSCO_USER }}
+          POSCO_PASSWORD: ${{ secrets.POSCO_PASSWORD }}
         run: python bot.py
 
       - name: Guardar reporte como artifact

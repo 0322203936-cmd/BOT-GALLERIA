@@ -8,6 +8,9 @@ from playwright.sync_api import sync_playwright
 USUARIO = os.environ.get("GF_USER", "POSCOCFBC")
 PASSWORD = os.environ.get("GF_PASSWORD", "1234")
 
+POSCO_USER = os.environ.get("POSCO_USER", "")
+POSCO_PASSWORD = os.environ.get("POSCO_PASSWORD", "")
+
 URL_LOGIN = "https://farms.galleriafarms.com/SplashWFrm.aspx?ReturnUrl=%2fDefault.aspx"
 
 def calcular_fechas():
@@ -133,14 +136,28 @@ def descargar_reporte():
             print(f"✅ Archivo descargado (respaldo): {archivo}")
 
         # ── 6. Fase 2: Exploración de PoscoClient (Paso 1) ──────────────────────
-        print("\n🚀 Iniciando Fase 2 (Paso 1): Exploración de PoscoClient...")
+        print("\n🚀 Iniciando Fase 2 (Paso 1): Exploración de PoscoClient con Login...")
         try:
-            print("🌐 Navegando a PoscoClient...")
-            page.goto("http://3.132.9.174/Posco/#/revisar-ordenes", wait_until="networkidle", timeout=60000)
+            print("🌐 Navegando a Login de PoscoClient...")
+            page.goto("http://3.132.9.174/Posco/", wait_until="networkidle", timeout=60000)
+            time.sleep(3)
+            
+            print("🔐 Iniciando sesión en PoscoClient...")
+            # En base a la captura, buscar campos de usuario y contraseña
+            page.fill('input[placeholder*="usuario@email.com" i], input[type="text"]', POSCO_USER)
+            page.fill('input[placeholder*="Password" i], input[type="password"]', POSCO_PASSWORD)
+            page.click('button:has-text("Iniciar Sesión"), button:has-text("Login")')
+            
+            print("⏳ Esperando que cargue el dashboard de Posco...")
+            page.wait_for_load_state("networkidle", timeout=60000)
             time.sleep(5)
             
-            print("📸 Tomando captura inicial (debug_posco_inicio.png)...")
-            page.screenshot(path="debug_posco_inicio.png", full_page=True)
+            print("🌐 Navegando a revisar-ordenes...")
+            page.goto("http://3.132.9.174/Posco/#/revisar-ordenes", wait_until="networkidle", timeout=60000)
+            time.sleep(5)
+
+            print("📸 Tomando captura inicial autenticado (debug_posco_login.png)...")
+            page.screenshot(path="debug_posco_login.png", full_page=True)
             
             print("🔎 Abriendo modal de 'Import excel'...")
             page.click('button:has-text("Revisar Archivo")', timeout=10000)
