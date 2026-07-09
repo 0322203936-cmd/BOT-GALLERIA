@@ -9,6 +9,9 @@ on:
     - cron: '0 18 * * 1-6'
     - cron: '0 22 * * 1-6'
 
+permissions:
+  contents: write
+
 jobs:
   procesar-cancelaciones:
     runs-on: ubuntu-latest
