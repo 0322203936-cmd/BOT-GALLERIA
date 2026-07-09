@@ -200,6 +200,15 @@ def descargar_reporte():
             print("📸 Tomando captura final tras 10 minutos (debug_posco_final.png)...")
             page.screenshot(path="debug_posco_final.png", full_page=True)
             
+            print("🔄 Recargando la página...")
+            page.reload(wait_until="networkidle", timeout=60000)
+            
+            print("⏳ Esperando 2 minutos extra tras la recarga...")
+            time.sleep(120)
+            
+            print("📸 Tomando captura tras la recarga (debug_posco_reload.png)...")
+            page.screenshot(path="debug_posco_reload.png", full_page=True)
+
             print("✅ Subida completada exitosamente.")
             
         except Exception as e:
