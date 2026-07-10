@@ -200,6 +200,15 @@ def descargar_reporte():
             print("📸 Tomando captura final tras 10 minutos (debug_posco_final.png)...")
             page.screenshot(path="debug_posco_final.png", full_page=True)
             
+            print("🔄 Dando clic en 'Actualizar' antes de recargar...")
+            page.click('button:has-text("Actualizar")', timeout=10000)
+            
+            print("⏳ Esperando 5 segundos a que actualice la tabla...")
+            time.sleep(5)
+            
+            print("📸 Tomando captura tras dar clic en actualizar (debug_posco_actualizado.png)...")
+            page.screenshot(path="debug_posco_actualizado.png", full_page=True)
+            
             print("🔄 Recargando la página...")
             page.reload(wait_until="networkidle", timeout=60000)
             
