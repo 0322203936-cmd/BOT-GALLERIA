@@ -6,7 +6,7 @@ on:
     # 6:00 AM, 11:00 AM, y 3:00 PM (Hora del Pacífico UTC-7)
     # Se suman 7 horas para llegar al UTC del servidor GitHub
     - cron: '0 13 * * 1-6'
-    - cron: '0 18 * * 1-6'
+    - cron: '40 18 * * 1-6'
     - cron: '0 22 * * 1-6'
 
 permissions:
