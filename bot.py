@@ -200,6 +200,9 @@ def descargar_reporte():
             print("📸 Tomando captura final tras 10 minutos (debug_posco_final.png)...")
             page.screenshot(path="debug_posco_final.png", full_page=True)
             
+            print("⏳ Esperando 30 segundos extra antes de darle a Actualizar...")
+            time.sleep(30)
+            
             print("🔄 Dando clic en 'Actualizar' antes de recargar...")
             page.click('button:has-text("Actualizar")', timeout=10000)
             
