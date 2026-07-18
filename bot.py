@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -12,6 +13,42 @@ POSCO_USER = os.environ.get("POSCO_USER", "")
 POSCO_PASSWORD = os.environ.get("POSCO_PASSWORD", "")
 
 URL_LOGIN = "https://farms.galleriafarms.com/SplashWFrm.aspx?ReturnUrl=%2fDefault.aspx"
+CUSTOMER_MANTENER_ACTIVO = "AMERICANA FARMS VISTA"
+
+
+def mantener_estatus_original_activo(page, customer_name=CUSTOMER_MANTENER_ACTIVO):
+    """Activa la accion solo en las filas del cliente indicado."""
+    customer_text = page.get_by_text(customer_name, exact=True)
+    matching_rows = page.locator("tr").filter(has=customer_text)
+    row_count = matching_rows.count()
+
+    print(f"Filas encontradas para {customer_name}: {row_count}")
+    if row_count == 0:
+        print("   No hay filas de este cliente para mantener en ACTIVO.")
+        return 0
+
+    clicked = 0
+    action_name = re.compile(
+        r"Mantener\s+Estatus\s+original\s+ACTIVO",
+        re.IGNORECASE,
+    )
+
+    # Se recorre desde abajo para mantener indices estables si la tabla se actualiza.
+    for index in range(row_count - 1, -1, -1):
+        row = matching_rows.nth(index)
+        action_button = row.get_by_role("button", name=action_name)
+        if action_button.count() != 1:
+            raise RuntimeError(
+                f"La fila {index + 1} de {customer_name} no contiene un unico "
+                "boton 'Mantener Estatus original ACTIVO'."
+            )
+
+        action_button.click(timeout=10000)
+        clicked += 1
+        page.wait_for_timeout(700)
+
+    print(f"   Filas de {customer_name} marcadas para conservar ACTIVO: {clicked}")
+    return clicked
 
 def calcular_fechas():
     """Calcula el rango: hoy → hoy + 6 meses"""
@@ -202,6 +239,12 @@ def descargar_reporte():
             
             print("⏳ Esperando 30 segundos extra antes de darle a Actualizar...")
             time.sleep(30)
+
+            print("Activando 'Mantener Estatus original ACTIVO' para AMERICANA FARMS VISTA...")
+            mantener_estatus_original_activo(page)
+
+            print("Tomando captura tras mantener Americana Farms Vista en ACTIVO...")
+            page.screenshot(path="debug_posco_americana_activo.png", full_page=True)
             
             print("🔄 Dando clic en 'Actualizar' antes de recargar...")
             page.click('button:has-text("Actualizar")', timeout=10000)
