@@ -14,7 +14,7 @@ POSCO_PASSWORD = os.environ.get("POSCO_PASSWORD", "")
 
 URL_LOGIN = "https://farms.galleriafarms.com/SplashWFrm.aspx?ReturnUrl=%2fDefault.aspx"
 CUSTOMER_MANTENER_ACTIVO = "AMERICANA FARMS VISTA"
-ACTUALIZAR_POSCO_HABILITADO = False
+ACTUALIZAR_POSCO_HABILITADO = True
 
 
 def mantener_estatus_original_activo(page, customer_name=CUSTOMER_MANTENER_ACTIVO):
