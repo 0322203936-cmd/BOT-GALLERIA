@@ -14,6 +14,7 @@ POSCO_PASSWORD = os.environ.get("POSCO_PASSWORD", "")
 
 URL_LOGIN = "https://farms.galleriafarms.com/SplashWFrm.aspx?ReturnUrl=%2fDefault.aspx"
 CUSTOMER_MANTENER_ACTIVO = "AMERICANA FARMS VISTA"
+ACTUALIZAR_POSCO_HABILITADO = False
 
 
 def mantener_estatus_original_activo(page, customer_name=CUSTOMER_MANTENER_ACTIVO):
@@ -246,14 +247,18 @@ def descargar_reporte():
             print("Tomando captura tras mantener Americana Farms Vista en ACTIVO...")
             page.screenshot(path="debug_posco_americana_activo.png", full_page=True)
             
-            print("🔄 Dando clic en 'Actualizar' antes de recargar...")
-            page.click('button:has-text("Actualizar")', timeout=10000)
-            
-            print("⏳ Esperando 5 segundos a que actualice la tabla...")
-            time.sleep(5)
-            
-            print("📸 Tomando captura tras dar clic en actualizar (debug_posco_actualizado.png)...")
-            page.screenshot(path="debug_posco_actualizado.png", full_page=True)
+            if ACTUALIZAR_POSCO_HABILITADO:
+                print("🔄 Dando clic en 'Actualizar' antes de recargar...")
+                page.click('button:has-text("Actualizar")', timeout=10000)
+                print("⏳ Esperando 5 segundos a que actualice la tabla...")
+                time.sleep(5)
+                page.screenshot(path="debug_posco_actualizado.png", full_page=True)
+            else:
+                print("🧪 MODO PRUEBA: clic en 'Actualizar' deshabilitado.")
+                page.screenshot(
+                    path="debug_posco_actualizar_deshabilitado.png",
+                    full_page=True,
+                )
             
             print("🔄 Recargando la página...")
             page.reload(wait_until="networkidle", timeout=60000)
